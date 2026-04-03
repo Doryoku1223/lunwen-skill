@@ -5,6 +5,7 @@
 > “论文不是把字堆满，而是把项目事实、样文规范、图表截图和 Word 交付一次性闭环。”
 
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-F7C948)
 ![Codex](https://img.shields.io/badge/Codex-Skill-111111)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-6B7280)
 ![Chinese Thesis](https://img.shields.io/badge/Chinese-Thesis%20Workflow-0A7EFA)
@@ -20,7 +21,7 @@
 可以结合历届样文、开题报告、学校模板和真实项目内容生成初稿，  
 自动补充流程图、用例图、E-R 图等论文图表，并补齐项目截图与常见配图位，形成一套可继续精修的论文初稿工作流。
 
-[安装](#安装) · [使用流程](#推荐工作流) · [当前能力](#当前能力) · [常用脚本](#常用脚本) · [详细安装说明](./INSTALL.md) · [GitHub](https://github.com/Doryoku1223)
+[安装](#安装) · [使用流程](#推荐工作流) · [当前能力](#当前能力) · [常用脚本](#常用脚本) · [详细安装说明](./INSTALL.md) · [GitHub](https://github.com/Doryoku1223/lunwen-skill)
 
 </div>
 
@@ -29,13 +30,13 @@
 ### 方式 1：使用 Codex skill-installer 直接安装
 
 ```powershell
-python "${HOME}\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" --repo Doryoku1223/lunwen --path . --name lunwen
+python "${HOME}\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" --repo Doryoku1223/lunwen-skill --path . --name lunwen
 ```
 
 ### 方式 2：手动克隆到本地 skills 目录
 
 ```powershell
-git clone https://github.com/Doryoku1223/lunwen.git "${HOME}\.codex\skills\lunwen"
+git clone https://github.com/Doryoku1223/lunwen-skill.git "${HOME}\.codex\skills\lunwen"
 ```
 
 安装后重启 Codex，即可让它发现这个 skill。
