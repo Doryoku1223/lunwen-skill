@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lunwen"
+  short_description: "Write Chinese theses, learn sample-paper structure, manage references, figures, screenshots, and DOCX delivery."
+  default_prompt: "Use this skill to write or revise a Chinese thesis or graduation project paper based on real project facts, sample papers, templates, references, figures, screenshots, and DOCX delivery."
