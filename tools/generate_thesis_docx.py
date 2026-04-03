@@ -8,10 +8,21 @@ from typing import Iterable
 
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL, WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.enum.text import (
+    WD_ALIGN_PARAGRAPH,
+    WD_LINE_SPACING,
+    WD_LINE_SPACING as WD_LINE_SPACING_RULE,
+)
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
+
+SPECIAL_CENTERED_HEADINGS = {
+    "摘要",
+    "abstract",
+    "参考文献",
+    "致谢",
+}
 
 
 def set_east_asia_font(run, font_name: str) -> None:
@@ -44,6 +55,15 @@ def apply_normal(paragraph) -> None:
     apply_run_fonts(paragraph, "宋体", "Times New Roman", 10.5)
 
 
+def apply_english_abstract_body(paragraph) -> None:
+    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+    paragraph.paragraph_format.line_spacing = 1.25
+    paragraph.paragraph_format.first_line_indent = Pt(21)
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(0)
+    apply_run_fonts(paragraph, "Times New Roman", "Times New Roman", 12)
+
+
 def apply_heading(paragraph, level: int) -> None:
     paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
     paragraph.paragraph_format.line_spacing = 1.25
@@ -54,11 +74,20 @@ def apply_heading(paragraph, level: int) -> None:
     apply_run_fonts(paragraph, "黑体", "Times New Roman", size, bold=True)
 
 
+def apply_centered_section_heading(paragraph, text: str) -> None:
+    apply_heading(paragraph, 1)
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if text.lower() == "abstract":
+        apply_run_fonts(paragraph, "Times New Roman", "Times New Roman", 18, bold=True)
+
+
 def apply_caption(paragraph) -> None:
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-    paragraph.paragraph_format.line_spacing = 1.25
+    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING_RULE.SINGLE
+    paragraph.paragraph_format.line_spacing = 1
     paragraph.paragraph_format.first_line_indent = Pt(0)
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(0)
     apply_run_fonts(paragraph, "宋体", "Times New Roman", 10.5)
 
 
@@ -70,6 +99,47 @@ def apply_reference(paragraph) -> None:
     paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = Pt(0)
     apply_run_fonts(paragraph, "宋体", "Times New Roman", 10.5)
+
+
+def apply_keywords_paragraph(paragraph, label: str, content: str) -> None:
+    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+    paragraph.paragraph_format.line_spacing = 1.25
+    paragraph.paragraph_format.first_line_indent = Pt(0)
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(0)
+    if label.startswith("关键词"):
+        label_run = paragraph.add_run(label)
+        label_run.bold = True
+        label_run.font.size = Pt(12)
+        label_run.font.name = "Times New Roman"
+        label_run._element.rPr.rFonts.set(qn("w:eastAsia"), "黑体")
+        label_run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+        label_run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+        content_run = paragraph.add_run(content)
+        content_run.bold = False
+        content_run.font.size = Pt(12)
+        content_run.font.name = "Times New Roman"
+        content_run._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
+        content_run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+        content_run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+        return
+
+    label_run = paragraph.add_run(label)
+    label_run.bold = True
+    label_run.font.size = Pt(12)
+    label_run.font.name = "Times New Roman"
+    label_run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+    label_run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+    label_run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+
+    if content:
+        content_run = paragraph.add_run(f" {content}")
+        content_run.bold = False
+        content_run.font.size = Pt(12)
+        content_run.font.name = "Times New Roman"
+        content_run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+        content_run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+        content_run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
 
 
 def load_image_map(path: Path | None) -> dict[str, Path]:
@@ -125,6 +195,7 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
     in_code = False
     code_lang = ""
     pending_mermaid = False
+    seen_content = False
     i = 0
 
     while i < len(lines):
@@ -158,17 +229,23 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.add_run(stripped[2:].strip())
             apply_run_fonts(p, "黑体", "Times New Roman", 18, bold=True)
+            seen_content = True
             i += 1
             continue
 
         if stripped.startswith("## "):
             text = stripped[3:].strip()
+            normalized = text.replace(" ", "").lower()
             p = doc.add_paragraph()
             p.add_run(text)
-            apply_heading(p, 1)
-            if text not in {"摘  要", "Abstract"}:
+            if seen_content:
                 add_page_break_before(p)
+            if normalized in SPECIAL_CENTERED_HEADINGS:
+                apply_centered_section_heading(p, text)
+            else:
+                apply_heading(p, 1)
             current_section = text
+            seen_content = True
             i += 1
             continue
 
@@ -176,6 +253,7 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
             p = doc.add_paragraph()
             p.add_run(stripped[4:].strip())
             apply_heading(p, 2)
+            seen_content = True
             i += 1
             continue
 
@@ -183,6 +261,15 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
             p = doc.add_paragraph()
             p.add_run(stripped[5:].strip())
             apply_heading(p, 3)
+            seen_content = True
+            i += 1
+            continue
+
+        keyword_match = re.match(r"^(关键词[:：]|Keywords[:：])\s*(.*)$", stripped)
+        if keyword_match:
+            p = doc.add_paragraph()
+            apply_keywords_paragraph(p, keyword_match.group(1), keyword_match.group(2))
+            seen_content = True
             i += 1
             continue
 
@@ -192,6 +279,7 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
             image_path = image_map.get(label)
             if image_path and image_path.exists():
                 add_image(doc, image_path)
+                seen_content = True
             i += 1
             continue
 
@@ -204,6 +292,7 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
             p = doc.add_paragraph()
             p.add_run(stripped.replace("`", ""))
             apply_caption(p)
+            seen_content = True
             i += 1
             continue
 
@@ -213,14 +302,18 @@ def build_doc(source: Path, image_map: dict[str, Path]) -> Document:
                 table_lines.append(lines[i].strip())
                 i += 1
             add_markdown_table(doc, table_lines)
+            seen_content = True
             continue
 
         p = doc.add_paragraph()
         p.add_run(stripped.replace("`", ""))
-        if current_section == "参 考 文 献" and re.match(r"^\[\d+\]", stripped):
+        if current_section.replace(" ", "") == "参考文献" and re.match(r"^\[\d+\]", stripped):
             apply_reference(p)
+        elif current_section.lower() == "abstract":
+            apply_english_abstract_body(p)
         else:
             apply_normal(p)
+        seen_content = True
         i += 1
 
     return doc
