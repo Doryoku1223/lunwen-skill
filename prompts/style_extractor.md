@@ -37,3 +37,9 @@
 9. 参考文献与致谢样式
 
 样式分析完成后，必须与建议目录一起回传用户确认。
+
+如果样文是 `.docx`，不能只做口头总结，必须产出结构化样式文件：
+
+- `python tools/analyze_docx.py <sample.docx> --json-out output/style-profile.json`
+
+后续生成 `.docx` 时，必须继续传入该样式文件，而不是退回固定默认样式。

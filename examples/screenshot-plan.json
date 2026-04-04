@@ -1,0 +1,33 @@
+{
+  "base_url": "http://127.0.0.1:3000",
+  "cdp_url": "",
+  "output_dir": "output/doc",
+  "image_map_output": "image-map.json",
+  "headless": true,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "entries": [
+    {
+      "label": "系统首页",
+      "url": "/",
+      "wait_for_selector": "body",
+      "wait_for_text": "",
+      "clip_selector": "",
+      "filename": "系统首页.png",
+      "full_page": true,
+      "actions": []
+    },
+    {
+      "label": "核心功能页面",
+      "url": "/dashboard",
+      "wait_for_selector": "[data-page='dashboard']",
+      "wait_for_text": "",
+      "clip_selector": "",
+      "filename": "核心功能页面.png",
+      "full_page": true,
+      "actions": []
+    }
+  ]
+}

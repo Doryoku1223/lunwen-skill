@@ -1,0 +1,13 @@
+{
+  "name": "lunwen-skill",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-contained browser automation helpers for thesis screenshots.",
+  "scripts": {
+    "install:browsers": "playwright install chromium",
+    "capture:screenshots": "node tools/browser/capture_screenshots.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0"
+  }
+}

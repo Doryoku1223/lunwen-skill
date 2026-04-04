@@ -43,15 +43,18 @@ git clone https://github.com/Doryoku1223/lunwen-skill.git "${HOME}\.codex\skills
 
 如果你使用 Claude Code，也可以把仓库放到项目中直接复用其中的 `.claude/commands/` 和 `.claude/agents/` 兼容层，详细说明见 [INSTALL.md](./INSTALL.md)。
 
+仓库同时补充了 `.trae/commands/` 与 `.trae/agents/` 兼容包装，方便在 Trae 这类只读取入口命令/代理定义的环境里尽量完整传递工作流。
+
 ## 当前能力
 
 - 样文目录与字数分析
+- 样文 DOCX 样式提取与结构化样式配置
 - 模板/样文样式提取
 - 项目事实底稿抽取
 - 按样文章节节奏控字写作
 - 中文/英文参考文献比例控制
 - Mermaid / PlantUML 图表策略
-- Chrome MCP / 浏览器自动截图策略
+- 内置 Playwright / Chrome CDP 浏览器自动截图策略
 - doc / docx Word 成稿交付策略
 
 ## 推荐目录结构
@@ -112,12 +115,28 @@ python tools/analyze_sample_pdf.py sample.pdf
 python tools/build_reference_pool.py thesis.md
 ```
 
-### 4. 提取截图占位并建立图片映射
+### 4. 分析样文 DOCX 并生成样式配置
+
+```bash
+python tools/analyze_docx.py sample.docx --json-out output/style-profile.json
+```
+
+### 5. 提取截图占位并生成截图计划
 
 ```bash
 python tools/extract_screenshot_placeholders.py thesis.md --json-out labels.json
-python tools/build_image_map.py labels.json output/doc image-map.json
+python tools/build_screenshot_plan.py labels.json output/screenshot-plan.json --base-url http://127.0.0.1:3000
 ```
+
+### 6. 使用仓库内置 Playwright 自动抓图并生成图片映射
+
+```bash
+python tools/capture_thesis_screenshots.py output/screenshot-plan.json
+```
+
+仓库提供了一个可直接参考的计划文件：
+
+- `examples/screenshot-plan.json`
 
 如果截图文件名和占位文字不同，可以准备一个手动映射 JSON：
 
@@ -134,29 +153,44 @@ python tools/build_image_map.py labels.json output/doc image-map.json
 python tools/build_image_map.py labels.json output/doc image-map.json --manual manual-map.json
 ```
 
-### 5. 提取 Mermaid 图块
+如果需要复用已打开的 Chrome / Trae 浏览器会话，可以在 `output/screenshot-plan.json` 中填写 `cdp_url` 后再执行截图脚本。
+
+### 7. 检查并补齐基础图表 / 截图占位
+
+```bash
+python tools/ensure_thesis_assets.py thesis.md --check-only
+python tools/ensure_thesis_assets.py thesis.md --in-place
+```
+
+### 8. 提取 Mermaid 图块
 
 ```bash
 python tools/extract_mermaid_blocks.py thesis.md tmp/mermaid --manifest tmp/mermaid/manifest.json
 ```
 
-### 6. 渲染 Mermaid
+### 9. 渲染 Mermaid
 
 ```bash
 python tools/render_mermaid.py tmp/mermaid/diagram-01.mmd tmp/mermaid/diagram-01.png
 ```
 
-### 7. 生成 DOCX
+### 10. 统计章节字数与近似 Word 口径
 
 ```bash
-python tools/generate_thesis_docx.py thesis.md thesis.docx image-map.json
+python tools/count_chapter_words.py thesis.md
+```
+
+### 11. 生成 DOCX
+
+```bash
+python tools/generate_thesis_docx.py thesis.md thesis.docx --style-profile output/style-profile.json --image-map image-map.json
 ```
 
 ## 当前限制
 
 - 如果环境没有 LibreOffice / Poppler，无法做逐页渲染检查。
 - 如果环境没有 Mermaid 渲染能力，流程图可能只能保留源码或占位。
-- 浏览器截图能力依赖 Chrome MCP、Playwright 或等效工具，不能保证所有环境都可自动抓图。
+- 浏览器截图默认由仓库自动安装并调用 Playwright Chromium；如果机器没有 Node.js，则无法自举浏览器能力。
 
 ## 兼容性
 

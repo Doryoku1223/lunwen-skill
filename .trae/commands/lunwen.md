@@ -14,6 +14,7 @@ argument-hint: "[论文需求或任务说明]"
 5. 如果存在样文、模板、项目代码、参考文献约束、截图需求或 `.docx` 要求，全部纳入同一工作流
 6. 如果样文是 `.docx`，先运行 `tools/analyze_docx.py` 生成样式配置，再开始正文
 7. 写作期间必须用 `tools/count_chapter_words.py` 控字，并用 `tools/ensure_thesis_assets.py` 检查图表/截图闭环
-8. 如果存在截图占位，优先用 `tools/build_screenshot_plan.py` + `tools/capture_thesis_screenshots.py` 生成 `image-map.json`
+8. 生成 `.docx` 时必须传入 `--style-profile`，且最终文档不能残留 `**`、反引号或 Markdown 链接
+9. 如果存在截图占位，优先用 `tools/build_screenshot_plan.py` + `tools/capture_thesis_screenshots.py` 生成 `image-map.json`
 
 ARGUMENTS: $ARGUMENTS

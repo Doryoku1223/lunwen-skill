@@ -1,6 +1,6 @@
 ---
 name: lunwen-writer
-description: 专门负责中文毕业论文、毕业设计论文和技术报告写作、控字、样文学习、图表截图和Word成稿交付
+description: 专门负责中文毕业论文、毕业设计论文和技术报告写作、控字、样文学习、图表截图和 Word 成稿交付
 tools: Read,Write,Edit,Bash
 ---
 

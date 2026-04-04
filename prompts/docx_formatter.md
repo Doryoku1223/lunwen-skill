@@ -19,3 +19,15 @@
 必须优先让生成脚本真实实现这些规则，而不是只在说明里写规则。
 
 如果存在截图或渲染图，优先嵌入真实图片。
+
+生成时优先使用：
+
+- `python tools/generate_thesis_docx.py thesis.md thesis.docx --style-profile output/style-profile.json --image-map image-map.json`
+
+导出前必须确认正文已经清理掉 Markdown 痕迹，例如：
+
+- `**加粗**`
+- `` `code` ``
+- `[链接文字](https://example.com)`
+
+这些都不能原样进入最终 `.docx`。
