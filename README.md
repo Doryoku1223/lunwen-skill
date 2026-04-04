@@ -1,25 +1,71 @@
-# lunwen
+<div align="center">
 
-面向中文毕业论文、毕业设计论文、技术报告和课程设计论文的写作与交付技能。
+# 论文.skill
 
-## 推荐使用方式
+> “论文不是把字堆满，而是把项目事实、样文规范、图表截图和 Word 交付一次性闭环。”
 
-建议优先在 Codex 中使用本 skill。
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-F7C948)
+![Codex](https://img.shields.io/badge/Codex-Skill-111111)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-6B7280)
+![Chinese Thesis](https://img.shields.io/badge/Chinese-Thesis%20Workflow-0A7EFA)
 
-原因：
+面向本科计科学生推出的一键论文初稿 Skill。
 
-- Codex 更适合一边读取项目代码、一边分析学校模板、一边生成和修正文档
-- 本 skill 的完整流程依赖多轮文件检查、样式比对、脚本执行和成稿验证
-- 当论文模板是“带完整示例内容的学校模板”时，Codex 更适合持续迭代修正编号、目录、图表、附录和后置章节样式
+不会写毕业论文初稿，开题报告和项目代码不知道怎么落成正文？  
+历届样文、学校模板、格式要求很多，但拼不出完整结构？  
+流程图、用例图、E-R 图、系统截图和测试内容总是缺一块？  
+最后要交 `.docx`，却还停留在零散材料和碎片化笔记里？
 
-推荐工作顺序：
+把零散材料快速整理成论文初稿的 Skill。  
+可以结合历届样文、开题报告、学校模板和真实项目内容生成初稿，  
+自动补充流程图、用例图、E-R 图等论文图表，并补齐项目截图与常见配图位，形成一套可继续精修的论文初稿工作流。
 
-1. 在 Codex 中加载本 skill
-2. 先提供学校模板、样文、开题报告或任务书路径
-3. 等待模板分析与目录/样式确认
-4. 再生成正文、图表和 `.docx` 成稿
+[安装](#安装) · [快速使用方式](#快速使用方式) · [使用流程](#推荐工作流) · [当前能力](#当前能力) · [常用脚本](#常用脚本) · [详细安装说明](./INSTALL.md) · [GitHub](https://github.com/Doryoku1223/lunwen-skill)
 
-## 推荐搭配使用 Skills
+</div>
+
+## 安装
+
+### 方式 1：使用 Codex skill-installer 直接安装
+
+```powershell
+python "${HOME}\.codex\skills\.system\skill-installer\scripts\install-skill-from-github.py" --repo Doryoku1223/lunwen-skill --path . --name lunwen
+```
+
+### 方式 2：手动克隆到本地 skills 目录
+
+```powershell
+git clone https://github.com/Doryoku1223/lunwen-skill.git "${HOME}\.codex\skills\lunwen"
+```
+
+安装后重启 Codex，即可让它发现这个 skill。
+
+如果你使用 Claude Code，也可以把仓库放到项目中直接复用其中的 `.claude/commands/` 和 `.claude/agents/` 兼容层，详细说明见 [INSTALL.md](./INSTALL.md)。
+
+仓库同时补充了 `.trae/commands/` 与 `.trae/agents/` 兼容包装，方便在 Trae 这类只读取入口命令/代理定义的环境里尽量完整传递工作流。
+
+## 快速使用方式
+
+推荐优先在 Codex 中使用本 skill。
+
+最简单的使用方法：
+
+1. 把本项目 GitHub 链接复制给 Codex，让它帮你安装这个 skill。
+2. 安装成功后，在 Codex 中打开你的项目文件夹。
+3. 直接对 Codex 说：`为这个项目写一篇论文`
+4. 然后按提示继续提供学校模板、历届样文、开题报告或任务书路径。
+
+建议你在第一次使用时优先提供：
+
+- 学校论文模板
+- 历届样文
+- 开题报告或任务书
+- 项目源码目录
+
+这样 Codex 才能按“先分析模板，再确认目录样式，最后生成 `.docx` 成稿”的正确流程工作。
+
+## 推荐搭配 Skills
 
 以下是这次实战迭代中证明有价值的搭配：
 
@@ -33,8 +79,6 @@
   当成稿出现目录重复、标题编号叠加、图片覆盖正文、附录样式错误等问题时，用它来定位根因，而不是盲改
 - `verification-before-completion`
   在声称“论文已经生成好”之前，强制执行字数、引用、目录、图片和 `.docx` 存在性检查
-- `skill-creator`
-  当你要继续迭代或发布这个 skill 时，用它来规范更新 `SKILL.md`、prompts、脚本和资源结构
 
 如果论文工作流中还涉及以下任务，也建议按需搭配：
 
@@ -47,59 +91,112 @@
 
 ## 当前能力
 
-- 基于真实项目代码与文档冻结论文事实底稿
-- 优先分析学校模板和往届样文，而不是直接套默认样式
-- 支持 `.doc -> .docx` 转换后再做模板/样文分析
-- 提取封面、目录、正文起点、标题层级、图题表题、参考文献等样式
-- 新建 Word 表格时优先按三线表处理，并支持从模板/样文克隆三线表结构
-- 按样文章节体量控字写作
-- 通过独立 prompt 控制语言风格、逻辑检查和整体 review
-- 支持科研型论文的概念图、示意图、框架图规划
-- 支持将 LaTeX 公式转换为 Word 公式对象插入文档
-- 处理真实图片、截图、Mermaid 图和参考文献
-- 输出可交付的 `.docx`
+- 样文目录与字数分析
+- 样文 DOCX 样式提取与结构化样式配置
+- 模板/样文样式提取
+- 项目事实底稿抽取
+- 按样文章节节奏控字写作
+- 中文/英文参考文献比例控制
+- Mermaid / PlantUML 图表策略
+- 内置 Playwright / Chrome CDP 浏览器自动截图策略
+- doc / docx Word 成稿交付策略
 
-## 核心变化
+## 推荐目录结构
 
-当前版本已补充：
+```text
+lunwen/
+├── SKILL.md
+├── README.md
+├── INSTALL.md
+├── agents/
+│   └── openai.yaml
+├── prompts/
+├── references/
+├── tools/
+├── docs/
+└── examples/
+```
 
-1. 模板优先工作流
-2. `.doc` 自动转换入口
-3. `docx` 模板样式分析脚本
-4. `docx` 模板继承式生成脚本
-5. 无模板时自动生成可刷新目录字段
-6. 三线表默认生成
-7. 语言风格 / 逻辑检查 / 整体 review / 图示规划 prompt
-8. LaTeX 公式转 Word 公式对象
-9. 模板三线表识别与克隆
+## 设计原则
+
+1. 项目事实优先，不凭空补模块。
+2. 样文章节体量优先，不默认写厚。
+3. 学样文不只学内容，也学样式。
+4. 图表、截图、参考文献和 Word 交付都要闭环。
+5. 最终对用户展现过程与结果默认使用中文。
+
+## 推荐工作流
+
+建议按下面顺序使用本 skill：
+
+1. 读取项目代码与文档，冻结项目事实底稿。
+2. 分析样文或模板，提取章节体量和版式样式。
+3. 生成目标章节字数表。
+4. 分章写作并持续控字。
+5. 构建参考文献池并检查中英文比例。
+6. 处理 Mermaid / PlantUML 图表。
+7. 抓取真实系统截图替换占位。
+8. 生成 `.docx`。
+9. 做最终检查。
 
 ## 常用脚本
 
-### 转换 doc 为 docx
+### 1. 统计论文各章字数
 
 ```bash
-python tools/convert_word_to_docx.py template.doc
+python tools/count_chapter_words.py thesis.md
 ```
 
-### 分析模板或样文样式
+### 2. 分析样文 PDF
 
 ```bash
-python tools/analyze_docx_styles.py template.docx template-style.json
+python tools/analyze_sample_pdf.py sample.pdf
 ```
 
-### 生成 DOCX
-
-无模板模式：
+### 3. 检查参考文献池
 
 ```bash
-python tools/generate_thesis_docx.py thesis.md thesis.docx image-map.json --insert-toc
+python tools/build_reference_pool.py thesis.md
 ```
 
-模板继承模式：
+### 4. 分析样文 DOCX 并生成样式配置
 
 ```bash
-python tools/generate_thesis_docx.py thesis.md thesis.docx image-map.json \
-  --template template.docx \
-  --style-spec template-style.json \
-  --replace-from 设计总说明
+python tools/analyze_docx_styles.py sample.docx output/style-profile.json
 ```
+
+### 5. 提取截图占位并生成截图计划
+
+```bash
+python tools/extract_screenshot_placeholders.py thesis.md --json-out labels.json
+python tools/build_image_map.py labels.json output/doc image-map.json
+```
+
+### 6. 提取 Mermaid 图块
+
+```bash
+python tools/extract_mermaid_blocks.py thesis.md tmp/mermaid --manifest tmp/mermaid/manifest.json
+```
+
+### 7. 渲染 Mermaid
+
+```bash
+python tools/render_mermaid.py tmp/mermaid/diagram-01.mmd tmp/mermaid/diagram-01.png
+```
+
+### 8. 生成 DOCX
+
+```bash
+python tools/generate_thesis_docx.py thesis.md thesis.docx --style-spec output/style-profile.json --image-map image-map.json
+```
+
+## 当前限制
+
+- 如果环境没有 LibreOffice / Poppler，无法做逐页渲染检查。
+- 如果环境没有 Mermaid 渲染能力，流程图可能只能保留源码或占位。
+- 浏览器截图与真实系统抓图能力依赖额外环境支持。
+
+## 兼容性
+
+- Codex：原生适配。
+- Claude Code：已补 `.claude/commands/` 与 `.claude/agents/` 兼容层。
