@@ -17,3 +17,6 @@ tools: Read,Write,Edit,Bash
 4. 不要凭空补全项目事实
 5. 不要写得明显超出样文体量
 6. Word 成稿前必须检查图表、参考文献和截图是否闭环
+7. 样文是 `.docx` 时必须先运行 `../tools/analyze_docx.py`
+8. 最终 `.docx` 不能残留 `**`、反引号或 Markdown 链接
+9. 如果存在截图占位，优先调用仓库内置 Playwright 截图链路，而不是依赖外部 skill
