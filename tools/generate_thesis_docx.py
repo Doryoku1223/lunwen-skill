@@ -38,6 +38,7 @@ ABSTRACT_HEADINGS = {"摘要", "中文摘要", "abstract"}
 TOC_HEADINGS = {"目录", "目　　录"}
 BACK_MATTER_HEADINGS = {"参考文献", "致谢", "鸣谢", "声明", "在学期间参加课题的研究成果"}
 APPENDIX_PREFIXES = ("附录",)
+FRONT_MATTER_ORDER_TAGS = ("cn_abstract", "en_abstract", "toc")
 
 DEFAULT_REPLACE_MARKERS = [
     "设计总说明",
@@ -287,6 +288,13 @@ def set_outline_level(paragraph, level: int | None) -> None:
     outline.set(qn("w:val"), str(level))
 
 
+def clear_outline_level(paragraph) -> None:
+    p_pr = paragraph._p.get_or_add_pPr()
+    outline = p_pr.find(qn("w:outlineLvl"))
+    if outline is not None:
+        p_pr.remove(outline)
+
+
 def add_page_break_before(paragraph) -> None:
     p_pr = paragraph._p.get_or_add_pPr()
     page_break_before = p_pr.find(qn("w:pageBreakBefore"))
@@ -302,6 +310,14 @@ def apply_paragraph_style(paragraph, style: dict) -> None:
             paragraph.style = paragraph.part.styles[source_style_name]
         except KeyError:
             pass
+
+    if style.get("page_break_before"):
+        add_page_break_before(paragraph)
+
+    if style.get("clear_outline_level"):
+        clear_outline_level(paragraph)
+    set_outline_level(paragraph, style.get("outline_level"))
+
     if style.get("preserve_template_format"):
         return
 
@@ -325,11 +341,6 @@ def apply_paragraph_style(paragraph, style: dict) -> None:
         paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     else:
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
-    if style.get("page_break_before"):
-        add_page_break_before(paragraph)
-
-    set_outline_level(paragraph, style.get("outline_level"))
 
     east_asia = style.get("east_asia_font", "宋体")
     latin = style.get("latin_font", "Times New Roman")
@@ -389,6 +400,155 @@ def format_back_matter_heading(text: str) -> str:
     if compact == "声明":
         return "声　　明"
     return compact
+
+
+def normalized_template_candidates(text: str) -> list[str]:
+    compact = text.strip().replace(" ", "").replace("　", "")
+    candidates = [text.strip(), compact]
+    if compact == "致谢":
+        candidates.extend(["致　　谢", "致谢"])
+    elif compact == "声明":
+        candidates.extend(["声　　明", "声明"])
+    elif compact == "目录":
+        candidates.extend(["目　　录", "目录"])
+    elif compact == "摘要":
+        candidates.extend(["中文摘要", "摘要"])
+    return candidates
+
+
+def find_template_style_name(
+    template_doc: Document | None, text: str, *, prefer_last: bool = False
+) -> str | None:
+    if template_doc is None:
+        return None
+    candidate_keys = {normalize_heading_key(item) for item in normalized_template_candidates(text)}
+    matches: list[str] = []
+    for paragraph in template_doc.paragraphs:
+        if normalize_heading_key(paragraph.text.strip()) in candidate_keys and paragraph.style is not None:
+            matches.append(paragraph.style.name)
+    if matches:
+        return matches[-1] if prefer_last else matches[0]
+    return None
+
+
+def build_special_heading_style(
+    style_spec: dict,
+    template_doc: Document | None,
+    text: str,
+    base_key: str,
+    *,
+    include_in_toc: bool = False,
+    prefer_last_template_match: bool = False,
+) -> dict:
+    style = deepcopy(style_spec[base_key])
+    template_style_name = find_template_style_name(
+        template_doc,
+        text,
+        prefer_last=prefer_last_template_match,
+    )
+    if template_style_name:
+        style["source_style_name"] = template_style_name
+        style["preserve_template_format"] = True
+    else:
+        style.pop("source_style_name", None)
+        style.pop("preserve_template_format", None)
+    if include_in_toc:
+        style["outline_level"] = 0
+        style.pop("clear_outline_level", None)
+    else:
+        style["clear_outline_level"] = True
+        style.pop("outline_level", None)
+    return style
+
+
+def classify_front_matter_heading(raw_text: str) -> str | None:
+    key = normalize_heading_key(raw_text)
+    if key in {"中文摘要", "摘要"}:
+        return "cn_abstract"
+    if key == "abstract":
+        return "en_abstract"
+    if key in {normalize_heading_key(v) for v in TOC_HEADINGS}:
+        return "toc"
+    return None
+
+
+def split_markdown_sections(lines: list[str]) -> list[tuple[str | None, list[str]]]:
+    sections: list[tuple[str | None, list[str]]] = []
+    current_lines: list[str] = []
+    current_tag: str | None = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            if current_lines:
+                sections.append((current_tag, current_lines))
+            raw_text = stripped[3:].strip()
+            current_tag = classify_front_matter_heading(raw_text)
+            current_lines = [line]
+        else:
+            current_lines.append(line)
+    if current_lines:
+        sections.append((current_tag, current_lines))
+    return sections
+
+
+def get_template_front_matter_order(template_doc: Document | None) -> list[str]:
+    if template_doc is None:
+        return list(FRONT_MATTER_ORDER_TAGS)
+    order: list[str] = []
+    for paragraph in template_doc.paragraphs:
+        tag = classify_front_matter_heading(paragraph.text.strip())
+        if tag and tag not in order:
+            order.append(tag)
+        if len(order) == len(FRONT_MATTER_ORDER_TAGS):
+            break
+    return order or list(FRONT_MATTER_ORDER_TAGS)
+
+
+def reorder_front_matter_sections(
+    lines: list[str], template_doc: Document | None
+) -> tuple[list[str], bool]:
+    sections = split_markdown_sections(lines)
+    if template_doc is None:
+        return lines, False
+
+    front_order = get_template_front_matter_order(template_doc)
+    include_cn_abstract_in_toc = (
+        "toc" in front_order
+        and "cn_abstract" in front_order
+        and front_order.index("toc") < front_order.index("cn_abstract")
+    )
+
+    front_sections: dict[str, list[str]] = {}
+    front_positions = [idx for idx, (tag, _) in enumerate(sections) if tag in FRONT_MATTER_ORDER_TAGS]
+    if not front_positions:
+        return lines, include_cn_abstract_in_toc
+
+    original_front_order: list[str] = []
+    for tag, section_lines in sections:
+        if tag in FRONT_MATTER_ORDER_TAGS:
+            front_sections[tag] = section_lines
+            original_front_order.append(tag)
+
+    ordered_tags = [tag for tag in front_order if tag in front_sections]
+    ordered_tags.extend(tag for tag in original_front_order if tag not in ordered_tags)
+    reordered_front_sections = [(tag, front_sections[tag]) for tag in ordered_tags]
+
+    first_front_idx = front_positions[0]
+    rebuilt_sections: list[tuple[str | None, list[str]]] = []
+    inserted = False
+    for idx, section in enumerate(sections):
+        tag, section_lines = section
+        if idx == first_front_idx and not inserted:
+            rebuilt_sections.extend(reordered_front_sections)
+            inserted = True
+        if tag in FRONT_MATTER_ORDER_TAGS:
+            continue
+        rebuilt_sections.append((tag, section_lines))
+
+    rebuilt_lines: list[str] = []
+    for _, section_lines in rebuilt_sections:
+        rebuilt_lines.extend(section_lines)
+    return rebuilt_lines, include_cn_abstract_in_toc
 
 
 def add_image(doc: Document, path: Path) -> None:
@@ -627,10 +787,27 @@ def add_toc_field(paragraph) -> None:
     run._r.append(fld_end)
 
 
-def insert_toc_block(doc: Document, style_spec: dict, heading_text: str = "目录") -> None:
+def insert_toc_block(
+    doc: Document,
+    style_spec: dict,
+    heading_text: str = "目录",
+    *,
+    page_break_before: bool = False,
+    template_doc: Document | None = None,
+) -> None:
+    if page_break_before:
+        doc.add_page_break()
     heading = doc.add_paragraph()
     heading.add_run(heading_text)
-    apply_paragraph_style(heading, style_spec["toc_heading"])
+    apply_paragraph_style(
+        heading,
+        build_special_heading_style(
+            style_spec,
+            template_doc,
+            heading_text,
+            "toc_heading",
+        ),
+    )
     toc_paragraph = doc.add_paragraph()
     toc_paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
     toc_paragraph.paragraph_format.line_spacing = Pt(20)
@@ -689,7 +866,10 @@ def build_doc(
     should_insert_toc: bool,
     template_doc: Document | None,
 ) -> Document:
-    lines = source.read_text(encoding="utf-8").splitlines()
+    lines, include_cn_abstract_in_toc = reorder_front_matter_sections(
+        source.read_text(encoding="utf-8").splitlines(),
+        template_doc,
+    )
     current_section = ""
     in_code = False
     code_lang = ""
@@ -776,7 +956,13 @@ def build_doc(
             raw_text = stripped[3:].strip()
             raw_key = normalize_heading_key(raw_text)
             if raw_key in {normalize_heading_key(v) for v in TOC_HEADINGS} and should_insert_toc:
-                insert_toc_block(doc, style_spec, heading_text=raw_text)
+                insert_toc_block(
+                    doc,
+                    style_spec,
+                    heading_text=raw_text,
+                    page_break_before=seen_content,
+                    template_doc=template_doc,
+                )
                 toc_inserted = True
                 current_section = raw_text
                 seen_content = True
@@ -791,17 +977,62 @@ def build_doc(
             p = doc.add_paragraph()
             p.add_run(text)
             if raw_key in {normalize_heading_key(v) for v in ABSTRACT_HEADINGS}:
-                key = "abstract_heading_en"
-                apply_paragraph_style(p, style_spec[key])
+                if raw_key == "abstract":
+                    special_style = build_special_heading_style(
+                        style_spec,
+                        template_doc,
+                        raw_text,
+                        "abstract_heading_en",
+                    )
+                else:
+                    special_style = build_special_heading_style(
+                        {
+                            **style_spec,
+                            "abstract_heading_cn": style_spec.get(
+                                "abstract_heading_cn",
+                                style_spec["centered_heading"],
+                            ),
+                        },
+                        template_doc,
+                        raw_text,
+                        "abstract_heading_cn",
+                        include_in_toc=include_cn_abstract_in_toc,
+                    )
+                apply_paragraph_style(p, special_style)
             elif raw_key in {normalize_heading_key(v) for v in BACK_MATTER_HEADINGS}:
-                apply_paragraph_style(p, style_spec["centered_heading"])
+                apply_paragraph_style(
+                    p,
+                    build_special_heading_style(
+                        style_spec,
+                        template_doc,
+                        text,
+                        "centered_heading",
+                        prefer_last_template_match=True,
+                    ),
+                )
             elif raw_text.startswith(APPENDIX_PREFIXES):
                 apply_paragraph_style(p, style_spec.get("appendix_heading", style_spec["centered_heading"]))
             elif raw_key in {normalize_heading_key(v) for v in TOC_HEADINGS}:
-                apply_paragraph_style(p, style_spec["toc_heading"])
+                apply_paragraph_style(
+                    p,
+                    build_special_heading_style(
+                        style_spec,
+                        template_doc,
+                        raw_text,
+                        "toc_heading",
+                    ),
+                )
             elif raw_key in {normalize_heading_key(v) for v in SPECIAL_CENTERED_HEADINGS}:
-                key = "abstract_heading_en" if raw_key == "abstract" else "centered_heading"
-                apply_paragraph_style(p, style_spec[key])
+                base_key = "abstract_heading_en" if raw_key == "abstract" else "centered_heading"
+                apply_paragraph_style(
+                    p,
+                    build_special_heading_style(
+                        style_spec,
+                        template_doc,
+                        raw_text,
+                        base_key,
+                    ),
+                )
             else:
                 apply_paragraph_style(p, style_spec["heading1"])
             current_section = text
