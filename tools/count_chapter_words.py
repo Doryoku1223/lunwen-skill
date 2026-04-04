@@ -4,34 +4,9 @@ import re
 import sys
 from pathlib import Path
 
-from markdown_utils import compute_text_metrics
 
-
-CHAPTER_RE = re.compile(r"^##\s+(.+)$", flags=re.M)
-
-
-def chapter_spans(text: str) -> list[tuple[str, int, int]]:
-    matches = list(CHAPTER_RE.finditer(text))
-    spans: list[tuple[str, int, int]] = []
-
-    for index, match in enumerate(matches):
-        start = match.end()
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        spans.append((match.group(1).strip(), start, end))
-
-    return spans
-
-
-def format_metrics(label: str, metrics: dict[str, int]) -> str:
-    return (
-        f"{label}\t"
-        f"APPROX_WORDS={metrics['approx_word_count']}\t"
-        f"CHAR_NO_SPACES={metrics['char_no_spaces']}\t"
-        f"CHAR_WITH_SPACES={metrics['char_with_spaces']}\t"
-        f"CJK_CHARS={metrics['chinese_chars']}\t"
-        f"NON_CJK_WORDS={metrics['non_chinese_words']}\t"
-        f"EN_WORDS={metrics['english_words']}"
-    )
+def clean_count(text: str) -> int:
+    return len(re.sub(r"\s+", "", text))
 
 
 def main() -> int:
@@ -41,11 +16,18 @@ def main() -> int:
 
     path = Path(sys.argv[1])
     text = path.read_text(encoding="utf-8")
-    print(format_metrics("TOTAL", compute_text_metrics(text)))
-
-    for title, start, end in chapter_spans(text):
-        print(format_metrics(title, compute_text_metrics(text[start:end])))
-
+    chapters = re.findall(r"^## .+$", text, flags=re.M)
+    print(f"TOTAL\t{clean_count(text)}")
+    for idx, chapter in enumerate(chapters):
+        part = text.split(chapter, 1)[1]
+        next_pos = None
+        for nxt in chapters[idx + 1 :]:
+            pos = part.find(nxt)
+            if pos != -1:
+                next_pos = pos
+                break
+        body = part[:next_pos] if next_pos is not None else part
+        print(f"{chapter.replace('## ', '').strip()}\t{clean_count(body)}")
     return 0
 
 

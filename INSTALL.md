@@ -16,19 +16,6 @@ Claude Code 官方支持 `SKILL.md` 技能目录，也兼容 `.claude/commands/`
 
 - `.claude/commands/lunwen.md`
 - `.claude/agents/lunwen-writer.md`
-- `.trae/commands/lunwen.md`
-- `.trae/agents/lunwen-writer.md`
-
-如果你在 Trae 或其他只读取入口 prompt 的环境中使用，建议优先保证宿主至少能读取：
-
-- `agents/openai.yaml`
-- `tools/analyze_docx.py`
-- `tools/build_screenshot_plan.py`
-- `tools/capture_thesis_screenshots.py`
-- `tools/ensure_thesis_assets.py`
-- `tools/generate_thesis_docx.py`
-
-否则容易出现“读到技能名字，但没执行完整工作流”的情况。
 
 因此有两种接入方式：
 
@@ -42,7 +29,7 @@ Claude Code 官方支持 `SKILL.md` 技能目录，也兼容 `.claude/commands/`
 - `python-docx`
 - `pdfplumber`
 - `pypdf`
-- `Node.js` 与 `npm`（用于仓库内置 Playwright 自举）
+- Chrome MCP 或等效浏览器自动化能力
 
 如果需要将 `mermaid` / `plantuml` 渲染为真实图片，建议环境额外具备：
 
@@ -53,23 +40,6 @@ Claude Code 官方支持 `SKILL.md` 技能目录，也兼容 `.claude/commands/`
 
 - `soffice`
 - `pdftoppm`
-
-## 浏览器截图自举
-
-仓库内置了 Playwright 执行链路，首次运行：
-
-```powershell
-python tools/capture_thesis_screenshots.py output/screenshot-plan.json
-```
-
-会自动在仓库目录执行：
-
-```powershell
-npm install
-npm run install:browsers
-```
-
-然后再开始截图。用户不需要额外安装浏览器 skill。
 
 ## 编码规则
 

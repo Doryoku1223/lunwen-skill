@@ -1,3 +1,5 @@
 pypdf
 pdfplumber
 python-docx
+latex2mathml
+lxml
